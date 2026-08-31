@@ -1,0 +1,66 @@
+---
+title: Linux Permissions
+---
+
+## ⭐ Must Know
+
+**46. What are Linux file permissions?**
+They control who can read, write, or execute a file or directory. Every file has an owner (user), a group, and a permission set for "others," and each of those three gets its own read/write/execute flags.
+
+**47. Explain `rwx`.**
+`r` (read) lets you view a file's contents or list a directory. `w` (write) lets you modify a file or create/delete entries in a directory. `x` (execute) lets you run a file as a program/script, or `cd` into a directory.
+
+**48. What are user, group, and others?**
+User is the file's owner. Group is the group associated with the file — any member of that group gets the group's permission set. Others is everyone else on the system who isn't the owner and isn't in the group.
+
+**49. Explain: `-rwxr-xr--`**
+The leading `-` means it's a regular file (not a directory). Then it breaks into three triplets: `rwx` for the owner (read, write, execute), `r-x` for the group (read, execute, no write), and `r--` for others (read only).
+
+**50. What does `chmod` do?**
+`chmod` changes the permission bits on a file or directory — who can read, write, or execute it.
+
+**51. Difference between symbolic and numeric permissions.**
+Symbolic uses letters, like `chmod u+x file` (add execute for the user) or `chmod g-w file`. Numeric uses octal digits where read=4, write=2, execute=1, summed per triplet, like `chmod 755 file`. I use numeric for setting permissions outright and symbolic when I just want to tweak one bit without recalculating the whole number.
+
+**52. Explain: `chmod 755 file` / `chmod 644 file`**
+`755` = owner gets rwx (7), group gets r-x (5), others get r-x (5) — typical for scripts and executables. `644` = owner gets rw- (6), group gets r-- (4), others get r-- (4) — typical for regular config or data files.
+
+**53. What does `chmod 777` mean?**
+Full read, write, and execute permissions for owner, group, and everyone else — completely open.
+
+**54. Why should you avoid `chmod 777`?**
+It's a major security risk — literally any user or process on the system can read, modify, or execute that file, including malicious ones. It's almost always a sign of trying to shortcut a real permissions problem instead of fixing the actual ownership/group issue. In interviews and in real work, I treat `777` as a red flag unless there's a very specific, temporary, well-understood reason.
+
+**55. What does `chown` do?**
+`chown` changes the owner (and optionally the group) of a file, e.g. `chown user:group file`.
+
+**56. Difference between `chown` and `chmod`.**
+`chown` changes *who owns* the file (user/group). `chmod` changes *what permissions* are granted to that owner/group/others. They solve different problems — one is about identity, the other is about access rights.
+
+**57. What does `chgrp` do?**
+`chgrp` changes just the group ownership of a file, e.g. `chgrp developers file`. It's basically a subset of what `chown` can do.
+
+**58. How do you change ownership of a directory recursively?**
+```bash
+chown -R user:group /path/to/dir
+```
+
+**59. What is `umask`?**
+`umask` sets the default permissions subtracted when a new file or directory is created. The default for files is usually 666 and for directories 777, and the umask value (commonly `022`) gets subtracted from that, giving 644 for new files and 755 for new directories.
+
+**60. What are SUID, SGID and Sticky Bit?**
+SUID (set user ID, `chmod u+s`) makes a program run with the file owner's privileges instead of the invoking user's — `passwd` uses this so any user can update `/etc/shadow` briefly. SGID (`chmod g+s`) does the same for the group, and on a directory it makes new files inherit that directory's group. Sticky bit (`chmod +t`), commonly seen on `/tmp`, means only the file's owner (or root) can delete or rename it even if others have write access to the directory.
+
+## 🔥 Scenario
+
+**61. You get `Permission denied` while executing a script. How do you troubleshoot?**
+First I check if the execute bit is even set with `ls -l script.sh` — if not, `chmod +x script.sh`. If it is set, I check ownership and whether I'm actually the owner or in the right group. I also check if the filesystem itself is mounted `noexec` (common on `/tmp` in hardened environments), and if it's a script, I make sure the shebang line and interpreter path are correct.
+
+**62. A Jenkins job cannot access a file. What would you check?**
+I'd check what user Jenkins actually runs as (often `jenkins`), then check the file's ownership and permissions against that user/group. If Jenkins isn't the owner and isn't in the group, I'd add the `jenkins` user to the appropriate group rather than loosening permissions to `777`. I'd also check SELinux/AppArmor context if that's enabled, since it can block access even when standard Unix permissions look fine.
+
+**63. A Docker process cannot access a mounted directory.**
+I'd check the UID/GID the container process actually runs as versus the ownership of the bind-mounted host directory — this mismatch is the most common cause. I'd also check if SELinux is enforcing (common on RHEL-based hosts), which needs the `:z` or `:Z` mount flag, and verify the host path permissions aren't overly restrictive.
+
+**64. How would you give a user access to a directory without making the file world-writable?**
+Create or use a dedicated group, add the user to that group, `chown` or `chgrp` the directory to that group, and set group permissions with `chmod g+rwx`. That way access is scoped to only the people who need it instead of opening it to `others`.

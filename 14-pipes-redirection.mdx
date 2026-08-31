@@ -1,0 +1,33 @@
+---
+title: Pipes & Redirection
+---
+
+**221. What is a pipe `|`?**
+A pipe connects the standard output of one command directly to the standard input of the next, letting me chain simple commands into more powerful ones, e.g. `cat file.txt | grep error | wc -l`.
+
+**222. What is output redirection `>`?**
+`>` sends a command's standard output to a file instead of the terminal, overwriting the file's existing contents if it already exists.
+
+**223. Difference between `>` and `>>`.**
+`>` overwrites the target file completely. `>>` appends to the end of the file instead, preserving whatever was already there — I use `>>` for anything I'm logging to over time.
+
+**224. What is input redirection `<`?**
+`<` feeds a file's contents into a command as its standard input, e.g. `mysql -u root -p dbname < dump.sql`.
+
+**225. What is `2>`?**
+`2>` redirects standard error (file descriptor 2) specifically, separate from standard output. `command 2> errors.log` sends only error messages to that file, while normal output still goes to the terminal.
+
+**226. What is `2>&1`?**
+It redirects file descriptor 2 (stderr) to wherever file descriptor 1 (stdout) is currently pointing, merging both streams together. Order matters — `2>&1` needs to come *after* the stdout redirect for it to work as expected.
+
+**227. What is `/dev/null`?**
+A special "null device" file that discards anything written to it and returns nothing when read — effectively a black hole, used to throw away output I don't care about.
+
+**228. Explain: `command > output.log 2>&1`**
+Standard output is redirected to `output.log` first, and then stderr is pointed at the same place stdout is now going (the file) — so both normal output and error messages end up combined in `output.log`. This is a very common pattern for logging cron jobs and background scripts.
+
+**229. What does this do? `cat file.txt | grep error`**
+Prints the contents of `file.txt` and pipes it into `grep`, which filters and prints only the lines containing "error." (Technically `grep error file.txt` alone does the same thing more efficiently, without the unnecessary `cat`, but the piped version is common and works fine.)
+
+**230. What does this do? `command > /dev/null 2>&1`**
+Runs `command` and completely discards both its standard output and standard error — nothing gets printed and nothing gets logged anywhere. I see this a lot in cron jobs where someone wants total silence, though I'd generally prefer logging to an actual file over throwing everything away.

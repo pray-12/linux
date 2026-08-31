@@ -1,0 +1,73 @@
+---
+title: Linux Fundamentals
+---
+
+## ⭐ Must Know
+
+**1. What is Linux?**
+Linux is a free, open-source, Unix-like operating system kernel originally created by Linus Torvalds in 1991. When people say "Linux," they usually mean the full OS — the kernel plus GNU tools, a shell, package managers, and so on — packaged together as a distribution.
+
+**2. What is the difference between Linux and Unix?**
+Unix is the original operating system developed at Bell Labs in the 1970s, and it's mostly proprietary (AIX, Solaris, HP-UX). Linux is a Unix-like clone — it follows the same design philosophy and POSIX standards but its kernel was written from scratch and it's open source. So Linux isn't derived from Unix code, it just behaves like it.
+
+**3. What is a Linux distribution?**
+A distribution (or "distro") is the Linux kernel bundled with a set of tools, libraries, a package manager, and often a desktop environment, all put together by an organization or community — for example Ubuntu, CentOS/RHEL, Debian, Amazon Linux. As a DevOps engineer I mostly work with Ubuntu and Amazon Linux on servers.
+
+**4. What is the Linux kernel?**
+The kernel is the core of the OS — it manages hardware, memory, processes, and system calls, and acts as the bridge between applications and hardware. Everything else (shell, utilities, package manager) sits on top of it.
+
+**5. What are the major components of a Linux system?**
+Broadly: the kernel (core), shell (command interpreter), file system, system utilities/GNU tools, and the various daemons/services managed by init/systemd. Above that sit the applications users actually interact with.
+
+**6. What is a shell?**
+A shell is a command-line interpreter that takes the commands I type, interprets them, and passes them to the kernel to execute. It's also a scripting language in its own right — Bash, Zsh, and Ksh are common examples.
+
+**7. What is Bash?**
+Bash (Bourne Again Shell) is the most common Linux shell and scripting language, and it's the default shell on most distributions. Almost all the shell scripts I write for automation are Bash scripts.
+
+**8. What happens when you execute a command in Linux?**
+The shell parses the command, checks if it's a built-in or an alias, and if not, searches `$PATH` for a matching executable. It then forks a new child process and uses `exec()` to replace that child's memory with the program, runs it, and returns the exit status to the shell once it finishes.
+
+**9. What is the difference between CLI and GUI?**
+CLI (command-line interface) means interacting with the system by typing commands into a terminal — that's what I use on servers since most don't even have a GUI. GUI (graphical user interface) is the windows/icons/mouse-driven interface, more common on desktop distros.
+
+**10. What is the root user?**
+Root is the superuser account with UID 0 — it has unrestricted access to every file and command on the system, bypassing normal permission checks. It's powerful but dangerous, so I try to avoid working as root directly and use `sudo` for specific commands instead.
+
+**11. What is `sudo`?**
+`sudo` ("superuser do") lets a permitted user run a specific command with elevated (usually root) privileges, without having to log in as root. Access is controlled via `/etc/sudoers`, and every sudo command gets logged, which is great for auditing.
+
+**12. What is the difference between `sudo` and `su`?**
+`sudo` runs a single command with elevated privileges and then drops back to your normal user, and it's tied to your own password and a defined permission set. `su` (switch user) actually starts a new shell as another user — typically root — and needs that target user's password, and you stay in that shell until you exit. I generally prefer `sudo` because it's more granular and auditable.
+
+**13. What is `/` in Linux?**
+`/` is the root directory — the top of the entire filesystem hierarchy. Every other directory, including mounted drives, hangs off of it; there's no concept of separate drive letters like in Windows.
+
+**14. What is the difference between an absolute path and relative path?**
+An absolute path always starts from `/` and fully specifies a file's location regardless of where you currently are, e.g. `/var/log/nginx/access.log`. A relative path is resolved based on your current working directory, e.g. `../logs/access.log`. I use absolute paths in scripts and cron jobs to avoid ambiguity.
+
+**15. What is the purpose of `/etc`, `/var`, `/home`, `/tmp`, `/usr`, `/opt`, `/root`?**
+- `/etc` — system-wide configuration files (nginx.conf, sshd_config, fstab, etc.)
+- `/var` — variable data that changes at runtime: logs (`/var/log`), spool files, caches
+- `/home` — personal directories for regular users
+- `/tmp` — temporary files, usually cleared on reboot
+- `/usr` — user installed programs, libraries, and binaries (the bulk of the OS software)
+- `/opt` — optional/third-party software, often self-contained app installs (e.g. Jenkins sometimes lives here)
+- `/root` — the home directory for the root user specifically
+
+## 🔥 Scenario
+
+**16. You logged into a Linux server. How would you check which user you are logged in as?**
+I'd run `whoami` for just the username, or `id` to see the UID, GID, and group memberships in one shot.
+
+**17. How do you check the Linux distribution and version?**
+`cat /etc/os-release` is the most reliable, portable way — it works across distros. `lsb_release -a` also works if it's installed.
+
+**18. How do you check the kernel version?**
+`uname -r` gives the kernel version; `uname -a` gives kernel, hostname, architecture, and build date all together.
+
+**19. How do you check system uptime?**
+`uptime` shows how long the system has been running along with load averages. `uptime -p` gives a cleaner "up 3 days, 2 hours" style output.
+
+**20. How do you find the hostname of a server?**
+`hostname` prints it directly, or I can check `hostnamectl` for more detail (static, transient, and pretty hostname, plus OS/kernel info).

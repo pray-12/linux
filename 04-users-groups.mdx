@@ -1,0 +1,64 @@
+---
+title: Users & Groups
+---
+
+## ⭐ Must Know
+
+**65. How do you create a user?**
+`useradd username`, and usually I follow it with `passwd username` to set a password. `adduser` is an interactive, more user-friendly wrapper on Debian/Ubuntu.
+
+**66. How do you delete a user?**
+`userdel username`, or `userdel -r username` to also remove their home directory and mail spool.
+
+**67. How do you modify a user?**
+`usermod` — for example `usermod -aG groupname username` to add them to a group, or `usermod -s /bin/bash username` to change their shell.
+
+**68. How do you create a group?**
+`groupadd groupname`.
+
+**69. How do you add a user to a group?**
+`usermod -aG groupname username`. The `-a` (append) is important — without it, `usermod -G` overwrites all of that user's existing supplementary groups instead of adding to them.
+
+**70. How do you check which groups a user belongs to?**
+`groups username`, or `id username` for a fuller picture including UID/GID numbers.
+
+**71. What is `/etc/passwd`?**
+A world-readable file listing every user account: username, UID, GID, home directory, and login shell. Despite the name, it hasn't stored actual passwords in decades.
+
+**72. What is `/etc/shadow`?**
+This is where the actual hashed passwords live, along with password aging info (last change, expiry). It's readable only by root, which is why it was split out from `/etc/passwd` in the first place.
+
+**73. What is `/etc/group`?**
+Lists all groups on the system along with their GID and member usernames.
+
+**74. What is the difference between `/etc/passwd` and `/etc/shadow`?**
+`/etc/passwd` holds general account info and is world-readable. `/etc/shadow` holds the actual password hashes and aging policy, and is restricted to root — that separation is a security measure so regular users can't even attempt to crack password hashes offline.
+
+**75. What is a system user?**
+An account created for a service or daemon (like `www-data`, `nginx`, `jenkins`) rather than a human. System users usually have a UID below a threshold (often 1000) and typically can't log in interactively.
+
+**76. What is the root user?**
+The superuser, UID 0, with unrestricted access to the entire system — covered in [Linux Fundamentals](./01-linux-fundamentals.mdx#10-what-is-the-root-user).
+
+**77. How do you switch users?**
+`su username`, or `su -` to switch to root with a full login environment (fresh PATH, home dir, etc.).
+
+**78. How do you lock/unlock a user?**
+`usermod -L username` locks the account (disables password login by prefixing the hash), `usermod -U username` unlocks it. `passwd -l` / `passwd -u` do the same thing.
+
+**79. How do you set password expiry?**
+`chage -M 90 username` sets the password to expire after 90 days. `chage -l username` lists the current aging settings for that account.
+
+**80. How do you check currently logged-in users?**
+`who` or `w` shows who's logged in and what they're doing; `w` adds load average and per-session CPU info. `last` shows login history.
+
+## 🔥 Scenario
+
+**81. A developer needs access to `/opt/application`. How would you provide access securely?**
+I'd create (or reuse) a dedicated group for that application, `chgrp` the directory to it, set permissions like `2775` (group-writable, with SGID so new files inherit the group), and add the developer to that group with `usermod -aG`. That way access is scoped and auditable instead of opening the directory to everyone.
+
+**82. A user cannot log in. What would you check?**
+Whether the account is locked (`passwd -S username`), whether the password has expired (`chage -l username`), whether the shell in `/etc/passwd` is valid and not `/sbin/nologin`, whether the home directory exists, and for SSH specifically, whether their key is correctly in `~/.ssh/authorized_keys` with the right permissions. I'd also check `/var/log/auth.log` or `/var/log/secure` for the actual rejection reason.
+
+**83. A user needs `sudo` access. How would you configure it?**
+Add them to the `sudo` (Debian/Ubuntu) or `wheel` (RHEL/CentOS) group with `usermod -aG sudo username`, or for more granular control, add a specific entry in `/etc/sudoers.d/` using `visudo` so I don't risk corrupting the main sudoers file. I'd scope it to only the commands they actually need rather than handing out blanket root access where possible.

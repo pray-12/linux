@@ -1,0 +1,82 @@
+---
+title: Processes
+---
+
+## ⭐ Must Know
+
+**84. What is a process?**
+A process is a running instance of a program — it has its own memory space, a process ID, an owner, open file descriptors, and a state (running, sleeping, stopped, zombie).
+
+**85. What is a PID?**
+Process ID — a unique number the kernel assigns to every running process.
+
+**86. What is PPID?**
+Parent Process ID — the PID of the process that spawned this one. Every process except `init`/PID 1 has a parent.
+
+**87. What is the difference between a process and a thread?**
+A process has its own isolated memory space and resources. A thread is a lighter-weight unit of execution that runs *within* a process and shares that process's memory with other threads in it. Multiple threads in one process can communicate more cheaply than separate processes, but a crash in one thread can bring down the whole process.
+
+**88. What is a foreground process?**
+A process that runs attached to the terminal, occupying it — the shell waits for it to finish before giving you the prompt back.
+
+**89. What is a background process?**
+A process that runs detached from the terminal's control, freeing up the shell for other commands. You start one by appending `&`.
+
+**90. What is a daemon?**
+A background service process, usually started at boot and running continuously, with no controlling terminal — things like `sshd`, `nginx`, `crond`. Daemon names conventionally end in `d`.
+
+**91. What is a zombie process?**
+A process that has finished executing but still has an entry in the process table because its parent hasn't yet called `wait()` to read its exit status. It's dead but not fully "reaped." A few zombies aren't usually a problem, but a growing number points to a parent process that's failing to clean up after its children.
+
+**92. What is an orphan process?**
+A process whose parent has died before it did. The kernel re-parents it (traditionally to `init`/PID 1, or `systemd` today), which then takes responsibility for eventually reaping it.
+
+**93. How do you list running processes?**
+`ps aux` gives a snapshot of every process on the system. `ps -ef` is the equivalent in the other (UNIX-style) syntax.
+
+**94. Difference between `ps`, `top`, and `htop`.**
+`ps` gives a static, one-time snapshot of processes. `top` is a live, auto-refreshing view of processes sorted by resource usage. `htop` is basically a nicer, colorized, more interactive version of `top` — scrollable, mouse-friendly, easier to sort and kill processes from — but it's not always pre-installed.
+
+**95. How do you find a process by name?**
+`pgrep processname`, or `ps aux | grep processname`.
+
+**96. How do you terminate a process?**
+`kill PID` sends a termination signal (SIGTERM by default) to a specific PID. `pkill processname` kills by name instead of needing the PID.
+
+**97. Difference between `kill` and `kill -9`.**
+Plain `kill` sends SIGTERM, a polite request asking the process to shut down gracefully so it can clean up. `kill -9` sends SIGKILL, which the kernel enforces immediately and the process cannot catch, ignore, or clean up after — it just dies. I always try plain `kill` first and only reach for `-9` if the process is genuinely stuck and ignoring SIGTERM.
+
+**98. What is SIGTERM?**
+Signal 15 — a graceful termination request that a process can catch and handle (e.g., to flush buffers or close connections) before exiting.
+
+**99. What is SIGKILL?**
+Signal 9 — an immediate, unignorable kill handled directly by the kernel. The process gets no chance to clean up.
+
+**100. How do you run a process in the background?**
+Append `&` to the command, e.g. `long_script.sh &`.
+
+**101. What are `&`, `jobs`, `fg`, and `bg`?**
+`&` starts a command in the background. `jobs` lists the background/suspended jobs tied to the current shell session. `fg` brings a background/suspended job back to the foreground. `bg` resumes a suspended (Ctrl+Z'd) job in the background.
+
+**102. What is `nohup`?**
+`nohup` runs a command so it ignores the SIGHUP signal, meaning it keeps running even after I log out or close the terminal — useful for long-running jobs I kick off from an SSH session I don't want to keep open. Output is redirected to `nohup.out` by default unless I redirect it elsewhere.
+
+## 🔥 Scenario
+
+**103. CPU usage is 100%. How would you troubleshoot?**
+I'd start with `top` or `htop` to see which process is consuming the CPU and sort by `%CPU`. Once I identify the process, I'd check what it's actually doing — logs, whether it's stuck in a loop, whether it's legitimate load vs. a runaway process — and decide whether to restart the service, kill a stuck process, or scale resources if it's genuine traffic.
+
+**104. A process is consuming too much memory. How do you identify it?**
+`top`/`htop` sorted by `%MEM`, or `ps aux --sort=-%mem | head`. I'd also check `/proc/<pid>/status` for detailed memory breakdown, and check whether it's a memory leak (usage climbing steadily over time) versus a legitimately memory-heavy workload.
+
+**105. An application is not responding. How would you investigate?**
+Check if the process is even alive (`ps`), check its logs for errors, check `top` for CPU/memory starvation, check if it's stuck waiting on I/O or a network call (`strace -p PID` can show what syscall it's blocked on), and check open file descriptors/connections with `lsof -p PID`. I'd also check disk space and whether a dependent service (database, downstream API) is the actual bottleneck.
+
+**106. A process cannot be killed using normal `kill`. What would you do?**
+First try `kill -9 PID` (SIGKILL). If it's still hanging around, it might be a zombie (in which case I need to deal with the parent, not the zombie itself) or stuck in an uninterruptible sleep state (`D` state in `ps`), usually waiting on I/O — that often means an underlying disk/NFS issue that needs its own investigation, since the process genuinely can't respond to any signal until the kernel call it's blocked on returns.
+
+**107. How would you find the top 5 CPU-consuming processes?**
+```bash
+ps aux --sort=-%cpu | head -6
+```
+(head -6 to include the header row plus the top 5).

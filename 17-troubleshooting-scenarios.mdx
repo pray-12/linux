@@ -1,0 +1,58 @@
+---
+title: Important DevOps Troubleshooting Questions
+---
+
+These are the "walk me through how you'd handle this" questions I make sure I can answer smoothly and confidently, end to end.
+
+## Scenario 1: Your Linux server is running out of disk space. What steps will you take?
+
+I'd start with `df -h` to confirm which mount point is actually full. Then drill down with `du -h --max-depth=1 /path | sort -rh` at each level to find the biggest offenders — in practice it's almost always logs, old backups, or Docker images/layers piling up. I'd clear or rotate oversized logs (truncating rather than deleting files a process still has open — see the `df` vs `du` inode/deleted-file gotcha), remove genuinely stale files, and check `df -i` in case it's actually inodes rather than raw space. Once it's stable, I'd put in log rotation (`logrotate`), disk usage alerting, and possibly resize the volume if this is a recurring, legitimate growth pattern rather than a one-off mess.
+
+## Scenario 2: CPU usage is 100%. How will you troubleshoot?
+
+`top` or `htop`, sorted by CPU, to identify the process. Then I dig into what that specific process is doing — checking its logs, whether it's stuck in a loop, handling an unusual traffic spike, or genuinely just under-provisioned for its load. Depending on what I find, I'd restart a misbehaving service, kill a runaway process, or plan to scale the resource if the load is legitimate. I'd also check load average against core count (`nproc`) to see how bad the queuing really is, and `mpstat`/`vmstat` for per-core or iowait detail if it's not obviously one process.
+
+## Scenario 3: Memory usage is 95%. What will you check?
+
+First, whether it's actually a problem — `free -h` and the "available" column specifically, since Linux uses spare RAM aggressively for disk cache and that's reclaimable on demand, not a leak. If real usage is genuinely high, `ps aux --sort=-%mem` to find the top consumers, and I'd watch whether one process's usage keeps climbing over time (a leak) versus being consistently high (just a memory-hungry workload). I'd also check swap usage — if swap is being hit hard, that's a much stronger signal of real memory pressure than the RAM percentage alone.
+
+## Scenario 4: A service is down. How will you troubleshoot it?
+
+`systemctl status servicename` first — it gives the failure state, exit code, and recent log lines in one shot. Then `journalctl -u servicename -xe` for the fuller trail, plus the app's own log file if it keeps one. I'd check for the obvious culprits: config syntax errors, a port already in use, a permissions/ownership issue, insufficient memory/disk, or a missing dependency (a database it needs that isn't up yet). Once I've found the root cause, I'd fix it and restart, then double check it starts cleanly on its own (`enable --now`) so it survives a reboot too.
+
+## Scenario 5: Jenkins service is not starting. What commands will you use?
+
+```bash
+systemctl status jenkins
+journalctl -u jenkins -n 100 --no-pager
+tail -n 200 /var/log/jenkins/jenkins.log
+```
+I'd check for port 8080 conflicts (`ss -tlnp | grep 8080`), verify Java is installed and the version is compatible, check memory availability, and confirm `/var/lib/jenkins` ownership/permissions are correct for the `jenkins` user.
+
+## Scenario 6: You cannot SSH into an EC2 instance. What will you check?
+
+Security group inbound rules for port 22 from my IP, the network ACL, that the instance is actually running and passed both status checks in the console, that I'm using the correct username for the AMI and the matching `.pem` key with `chmod 400` permissions, and whether it's in a private subnet that requires going through a bastion host or VPN first. If I have console/serial access, I'd also check `sshd` is actually running on the instance and that there isn't an OS-level firewall blocking it internally.
+
+## Scenario 7: Application is running on port 8080 but users cannot access it. How will you troubleshoot?
+
+Confirm locally that it's actually listening: `ss -tlnp | grep 8080`. Then work outward — check the host's local firewall/iptables rules, then the security group or cloud firewall rules for that port, then whether there's a load balancer or reverse proxy in front of it misconfigured to point at the wrong backend or port, and finally DNS to make sure users are even hitting the right server. I'd also test from inside the network (`curl localhost:8080`) versus from outside to narrow down exactly which layer is blocking access.
+
+## Scenario 8: You are getting `Permission denied`. What will you check?
+
+Whether it's a file permission issue (`ls -l` to check owner/group/mode, and whether I'm actually in the right group), an SSH key-based auth issue (`Permission denied (publickey)` — wrong key, wrong `authorized_keys` permissions), or a `sudo` privilege issue (not in the sudoers group, or the specific command isn't allowed). The exact wording and context of the error narrows it down fast — a filesystem path in the message points to file perms, "publickey" points to SSH auth, and a command name with no path usually points to sudo/privilege configuration.
+
+## Scenario 9: A log file is continuously increasing and filling the disk. What will you do?
+
+Immediate relief: truncate it in place (`truncate -s 0 file` or `: > file`) rather than deleting it, since a process holding the file open would keep writing to the now-unlinked inode and the space wouldn't actually free up. If it's urgent, I'd have the app reopen its log handle or restart it. Then I'd set up proper `logrotate` rules for that log going forward, and separately investigate *why* it's growing so fast — often it's a bug causing repeated errors/retries, or debug-level logging accidentally left on in production.
+
+## Scenario 10: A process is consuming excessive CPU. How do you identify and handle it?
+
+Identify it with `top`/`htop` sorted by CPU, or `ps aux --sort=-%cpu | head`. Once identified, I check what it's actually doing (logs, `strace -p PID` if needed) to decide whether it's legitimate load or something stuck/looping. For a graceful stop I'd use `kill PID` (SIGTERM) first so it can clean up; if it's unresponsive I'd escalate to `kill -9`. Longer term I'd figure out whether it needs a code fix, a resource limit (`nice`/`cgroups`), or more CPU allocated if the load is genuinely legitimate.
+
+## Scenario 11: A command works when you run it manually but fails when Jenkins executes it. What could be the reason?
+
+Almost always an environment difference. Jenkins jobs typically run in a non-interactive, non-login shell that never sources `.bashrc`/`.bash_profile`, so `PATH` additions, aliases, and env vars I have in my interactive session simply aren't there. Other common causes: a different working directory than I assumed, the Jenkins user not having the same permissions/group memberships as my own user, or the job running as a different user entirely. I'd add an `env` print as a build step to compare what Jenkins actually sees against my own shell, then fix it by setting needed variables explicitly in the job/pipeline config or system-wide (`/etc/environment`) rather than relying on a dotfile.
+
+## Scenario 12: Server is slow but CPU and memory look normal. What else would you investigate?
+
+Disk I/O wait — `iostat -x 1` or the `wa` column in `top`, since slow disk (or an overloaded EBS volume, for example) can bottleneck an app without CPU or memory ever looking stressed. Network latency and DNS resolution delays. Downstream dependency latency — a database running slow queries, or an external API responding slowly, can make the whole app feel sluggish while the box itself looks fine. Connection/thread pool exhaustion at the application layer. And for JVM-based apps specifically, GC pause times. I'd essentially work outward from the app itself to its dependencies rather than continuing to stare at OS-level CPU/memory metrics that have already come back clean.

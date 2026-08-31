@@ -1,0 +1,35 @@
+---
+title: Environment Variables
+---
+
+**212. What is an environment variable?**
+A named value stored in the shell's environment that processes can read to configure their behavior — things like `PATH`, `HOME`, `JAVA_HOME`. They get inherited by child processes, which is exactly why misconfigured ones cause the classic "works in my shell but not in the automated job" problem.
+
+**213. What is `$PATH`?**
+An environment variable listing directories, colon-separated, that the shell searches through (in order) to find the executable for a command I type. If a binary's directory isn't in `PATH`, I have to call it with its full path instead of just its name.
+
+**214. How do you display environment variables?**
+`env` or `printenv` shows all of them; `echo $VARNAME` shows one specific variable.
+
+**215. Difference between `env` and `printenv`.**
+They're nearly identical for just listing variables. `env` has the extra ability to run a command in a modified environment (`env VAR=value command`), which `printenv` can't do — `printenv` is purely for reading.
+
+**216. How do you set an environment variable?**
+```bash
+export VAR=value
+```
+This sets it for the current shell session and anything launched from it, but it's gone once that shell exits.
+
+**217. How do you make an environment variable persistent?**
+Add the `export VAR=value` line to a shell startup file that gets sourced automatically, like `~/.bashrc` or `~/.bash_profile` for a specific user, or `/etc/environment` for a system-wide, non-shell-specific setting.
+
+**218. What is `.bashrc`?**
+A per-user script that runs every time a new *interactive, non-login* Bash shell starts — this is where I usually put aliases, functions, and env vars I want available in every new terminal.
+
+**219. Difference between `.bashrc`, `.profile`, and `/etc/environment`.**
+`.bashrc` runs for interactive non-login shells (like opening a new terminal tab). `.profile` (or `.bash_profile`) runs for login shells specifically (like SSH-ing in fresh, or a console login). `/etc/environment` is system-wide and isn't a shell script at all — it's just plain `KEY=value` pairs read by the PAM environment module at login, independent of which shell you use.
+
+## 🔥 Scenario
+
+**220. A command works manually but not inside Jenkins. Environment variable is suspected. How would you troubleshoot?**
+Jenkins jobs often run in a non-interactive shell that never sources `.bashrc`, so any `PATH` additions or variables defined there simply aren't visible to the build. I'd compare `env` output from an interactive SSH session against what the Jenkins job actually sees — printing `env` as a build step is the fastest way to check — and then either set the needed variables explicitly in the Jenkins job/pipeline config, in a system-wide file like `/etc/environment`, or in the Jenkins node's own environment configuration, rather than relying on a login-shell dotfile.

@@ -1,0 +1,86 @@
+---
+title: grep, awk, sed
+---
+
+## grep
+
+**231. What is `grep`?**
+A pattern-matching tool — it searches text (files or piped input) for lines matching a given string or regular expression and prints the matches.
+
+**232. How do you search for a word?**
+```bash
+grep "word" filename
+```
+
+**233. How do you perform case-insensitive search?**
+```bash
+grep -i "word" filename
+```
+
+**234. How do you search recursively?**
+```bash
+grep -r "word" /path/to/dir
+```
+
+**235. How do you count matching lines?**
+```bash
+grep -c "word" filename
+```
+
+## awk
+
+**236. What is `awk`?**
+A pattern-scanning and text-processing language, great for working with structured, column-based text — like extracting specific fields from log lines or CSV-style data.
+
+**237. How can you print a specific column?**
+```bash
+awk '{print $2}' filename
+```
+This prints the second whitespace-separated field of every line. I can change the delimiter with `-F`, e.g. `awk -F',' '{print $2}'` for comma-separated data.
+
+**238. How would you extract IP addresses or fields from a log?**
+If the IP is a known column position, `awk '{print $1}' access.log` (common log format usually has the client IP first). For a more general pattern match regardless of position, I'd combine `grep -oE` with a regex like `grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}' access.log`.
+
+## sed
+
+**239. What is `sed`?**
+A stream editor for performing text transformations on a stream or file — most commonly used for find-and-replace, but it can also delete lines, insert text, and more, all without opening an editor.
+
+**240. How do you replace text using `sed`?**
+```bash
+sed 's/old/new/g' filename
+```
+The `g` makes it replace every occurrence per line, not just the first. Adding `-i` (`sed -i 's/old/new/g' filename`) edits the file in place.
+
+**241. Difference between `grep`, `awk`, and `sed`.**
+`grep` finds and prints lines matching a pattern — it doesn't modify anything. `awk` is built for field/column-based processing and can do more complex logic (conditions, calculations) on structured text. `sed` is for stream editing — transforming text, most commonly substitutions, in place or in a pipeline. In short: grep to *find*, awk to *extract/process fields*, sed to *transform*.
+
+## 🔥 Practical
+
+Given:
+```
+ERROR 500 /api/users
+INFO 200 /api/login
+ERROR 404 /api/products
+INFO 200 /api/home
+```
+
+**242. How would you find all ERROR entries?**
+```bash
+grep "ERROR" logfile
+```
+
+**243. How would you count ERROR entries?**
+```bash
+grep -c "ERROR" logfile
+```
+
+**244. How would you extract HTTP status codes?**
+```bash
+awk '{print $2}' logfile
+```
+
+**245. How would you replace `ERROR` with `CRITICAL`?**
+```bash
+sed 's/ERROR/CRITICAL/g' logfile
+```

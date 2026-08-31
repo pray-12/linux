@@ -1,0 +1,57 @@
+---
+title: Package Management
+---
+
+## ⭐ Must Know
+
+**203. What is a package manager?**
+A tool that automates installing, upgrading, configuring, and removing software, along with resolving dependencies between packages, so I don't have to manually download and compile everything.
+
+**204. What is `apt`?**
+The high-level package management tool used on Debian/Ubuntu-based systems — it handles installing, removing, searching, and updating packages, and manages dependency resolution using the underlying `dpkg` system.
+
+**205. Difference between `apt` and `apt-get`.**
+They do largely the same job, but `apt` is the newer, more user-friendly front end with a cleaner interface, progress bars, and sane defaults, combining the most commonly used features of `apt-get` and `apt-cache` into one command. `apt-get` is the older, more script-stable tool — some people still prefer it in scripts because its output/behavior is guaranteed more stable across versions.
+
+**206. How do you install a package?**
+```bash
+sudo apt install package-name
+```
+
+**207. How do you remove a package?**
+```bash
+sudo apt remove package-name
+```
+`apt purge` also removes the package's configuration files, which `remove` leaves behind.
+
+**208. How do you update package repositories?**
+```bash
+sudo apt update
+```
+This refreshes the local index of available packages/versions from the configured repositories — it doesn't install anything by itself.
+
+**209. How do you upgrade packages?**
+```bash
+sudo apt upgrade
+```
+This installs the newer versions of already-installed packages based on the refreshed index from `apt update`.
+
+**210. How do you search for a package?**
+```bash
+apt search package-name
+```
+
+**211. How do you check whether a package is installed?**
+```bash
+dpkg -l | grep package-name
+```
+or `apt list --installed | grep package-name`.
+
+**For Ubuntu/Debian, the core commands:**
+```bash
+apt update
+apt install
+apt remove
+apt upgrade
+apt search
+```

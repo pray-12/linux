@@ -1,0 +1,94 @@
+---
+title: File & Directory Management
+---
+
+## ⭐ Must Know
+
+**21. How do you list files?**
+`ls` lists files and directories in the current directory.
+
+**22. Difference between `ls`, `ls -l`, `ls -la`.**
+`ls` just lists names. `ls -l` gives the long listing — permissions, owner, group, size, modified date. `ls -la` adds hidden files (anything starting with a dot) to that long listing.
+
+**23. How do you create a file?**
+`touch filename` creates an empty file (or updates its timestamp if it already exists). I can also create a file with content directly via a redirect, like `echo "text" > file`.
+
+**24. How do you create a directory?**
+`mkdir dirname`. For nested directories in one go, `mkdir -p parent/child/grandchild`.
+
+**25. How do you copy a file?**
+`cp source destination`. For directories I add `-r` for recursive copy, and `-p` to preserve permissions/timestamps.
+
+**26. How do you move a file?**
+`mv source destination` — this also works across directories, not just renaming.
+
+**27. How do you rename a file?**
+Same command, `mv oldname newname` — Linux doesn't have a separate rename command, `mv` handles both moving and renaming.
+
+**28. How do you delete a file?**
+`rm filename`.
+
+**29. How do you delete a directory?**
+`rmdir dirname` only works if the directory is empty. For a directory with contents, `rm -r dirname`.
+
+**30. Difference between `rm`, `rm -r`, and `rm -rf`.**
+`rm` deletes files only. `rm -r` deletes recursively, so it works on directories and their contents. `rm -rf` does the same but forces it — no confirmation prompts, no errors if files don't exist. I'm always extremely careful with `rm -rf`, especially with variables in scripts, since a wrong path can wipe out way more than intended.
+
+**31. How do you find a file?**
+`find /path -name "filename"` searches the filesystem in real time, walking the directory tree.
+
+**32. Difference between `find` and `locate`.**
+`find` searches live, directly on the filesystem, so it's always accurate but can be slower on large trees. `locate` searches a prebuilt index (`updatedb` database), so it's much faster but can return stale results if the index hasn't been refreshed recently.
+
+**33. How do you display the contents of a file?**
+`cat filename` dumps the whole file to the terminal.
+
+**34. Difference between `cat`, `less`, `more`, `head`, and `tail`.**
+`cat` prints the entire file at once — fine for small files. `more` pages through a file forward-only. `less` also pages through it but lets you scroll both directions and search — I use `less` almost exclusively over `more`. `head` shows the first N lines (default 10), `tail` shows the last N lines.
+
+**35. How do you display the last 100 lines of a log file?**
+`tail -n 100 /var/log/app.log`.
+
+**36. How do you continuously monitor a log file?**
+`tail -f /var/log/app.log` follows the file live as new lines get appended — I use this constantly while debugging a deploy. `tail -F` is even better since it re-attaches if the file gets rotated.
+
+**37. How do you search for a specific word inside a file?**
+`grep "word" filename`.
+
+**38. How do you compare two files?**
+`diff file1 file2` shows the line-by-line differences.
+
+**39. How do you check the type of a file?**
+`file filename` — it inspects the content, not just the extension, so it tells you if something is actually a text file, ELF binary, gzip archive, etc.
+
+**40. What is a hidden file in Linux?**
+Any file or directory whose name starts with a dot, like `.bashrc` or `.ssh`. They don't show up in a plain `ls`, only with `ls -a` or `ls -la`.
+
+## 🔥 Practical
+
+**41. Find all `.log` files under `/var/log`.**
+```bash
+find /var/log -type f -name "*.log"
+```
+
+**42. Find files larger than 100 MB.**
+```bash
+find / -type f -size +100M
+```
+
+**43. Find files modified in the last 24 hours.**
+```bash
+find / -type f -mtime -1
+```
+
+**44. Delete all `.tmp` files from a directory.**
+```bash
+find /path/to/dir -type f -name "*.tmp" -delete
+```
+I usually run the `find` without `-delete` first to see exactly what would be removed before actually deleting anything.
+
+**45. Find which file is consuming the most space.**
+```bash
+du -ah /path | sort -rh | head -10
+```
+This lists everything under the path with human-readable sizes, sorts largest first, and shows the top 10.

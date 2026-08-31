@@ -1,0 +1,55 @@
+---
+title: Linux Services & systemd
+---
+
+## ⭐ Must Know
+
+**141. What is a service?**
+A background program that runs continuously (or on-demand) to provide some functionality — a web server, database, SSH daemon, etc. — usually started at boot and managed by the init system.
+
+**142. What is `systemd`?**
+`systemd` is the modern init system and service manager used by most major distros (Ubuntu, RHEL/CentOS 7+, Debian) — it's PID 1, the first process the kernel starts, and it's responsible for bringing up all other services, managing dependencies between them, handling logging via `journald`, and more.
+
+**143. What is `systemctl`?**
+The command-line tool used to control `systemd` — starting, stopping, restarting, enabling, and checking the status of services (called "units").
+
+**144. How do you start a service?**
+`sudo systemctl start servicename`.
+
+**145. How do you stop a service?**
+`sudo systemctl stop servicename`.
+
+**146. How do you restart a service?**
+`sudo systemctl restart servicename`. There's also `reload`, which re-reads config without fully stopping the process, useful for things like nginx where you don't want to drop connections.
+
+**147. How do you check service status?**
+`systemctl status servicename` — shows whether it's active/inactive/failed, the main PID, memory usage, and the most recent log lines, all in one view. It's usually my first stop when a service is misbehaving.
+
+**148. How do you enable a service at boot?**
+`sudo systemctl enable servicename`.
+
+**149. Difference between `start` and `enable`.**
+`start` runs the service right now, in the current session. `enable` creates the symlinks so the service comes up automatically on the *next* boot — it doesn't start it immediately. I usually run both (`enable --now`) when setting up a new service.
+
+**150. How do you disable a service?**
+`sudo systemctl disable servicename` — stops it from auto-starting at boot (doesn't stop it if it's currently running; I'd pair it with `stop`).
+
+**151. Where can you find service logs?**
+Via `journalctl -u servicename` for systemd-managed services, and/or in `/var/log/` if the app also writes its own log files (e.g. `/var/log/nginx/error.log`).
+
+**152. What is `journalctl`?**
+The command to query and view logs collected by `journald`, systemd's logging service — it centralizes logs from services, the kernel, and boot process into a structured, queryable format.
+
+## 🔥 Scenario
+
+**153. Jenkins is not starting. How would you troubleshoot?**
+`systemctl status jenkins` first to see the immediate failure reason and recent log lines. Then `journalctl -u jenkins -n 100 --no-pager` for a fuller log, and check Jenkins's own log at `/var/log/jenkins/jenkins.log`. Common causes: port 8080 already in use, insufficient memory, Java version mismatch, or a permissions issue on `/var/lib/jenkins`. I'd also confirm Java is installed and `JAVA_HOME` is correctly set if Jenkins is failing at startup rather than crashing later.
+
+**154. Nginx is running but website is unavailable. What would you check?**
+Confirm nginx is actually listening on the expected port with `ss -tlnp | grep nginx`, check `nginx -t` for a config syntax error, check `/var/log/nginx/error.log`, verify firewall rules (`iptables`/security group) aren't blocking the port, and check DNS is pointing where I expect. I'd also verify the upstream app it's proxying to is actually reachable, since nginx running doesn't mean the backend is healthy.
+
+**155. A service works manually but fails during boot. Why?**
+Usually an ordering/dependency issue — the service started before something it depends on (network, database, a mounted volume) was ready. It can also be an environment difference: interactive shells load `.bashrc`/profile env vars that aren't present in the systemd unit's environment, or a hardcoded relative path that only resolves correctly from a specific working directory. Fixing it usually means adding proper `After=`/`Requires=` directives in the unit file and making sure the unit explicitly sets any environment variables it needs.
+
+**156. How do you check why a systemd service failed?**
+`systemctl status servicename` for the headline reason and exit code, then `journalctl -u servicename -xe` for the fuller, prioritized log trail leading up to the failure.

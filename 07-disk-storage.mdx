@@ -1,0 +1,63 @@
+---
+title: Disk & Storage
+---
+
+## ⭐ Must Know
+
+**125. How do you check disk usage?**
+`df -h` shows filesystem-level usage — total, used, available space per mounted volume, in human-readable form.
+
+**126. Difference between `df` and `du`.**
+`df` reports disk space usage at the filesystem/mount level — how full each partition is. `du` reports space used by specific files and directories — it walks the directory tree and sums file sizes. They can occasionally disagree (see Q138) because of how deleted-but-open files are handled.
+
+**127. How do you check which directory is consuming the most disk space?**
+```bash
+du -h --max-depth=1 /path | sort -rh
+```
+This shows each immediate subdirectory's size, sorted largest first, so I can drill down level by level.
+
+**128. How do you check inode usage?**
+`df -i` shows inode usage per filesystem, same layout as `df -h` but counting inodes instead of bytes.
+
+**129. What is an inode?**
+An inode is a data structure that stores metadata about a file — permissions, owner, size, timestamps, and pointers to the actual data blocks on disk — everything except the filename itself (that's stored in the directory entry). Every file and directory consumes exactly one inode.
+
+**130. What happens when disk space becomes 100%?**
+Writes start failing — applications can't create new files, write logs, or in bad cases, even a running service can crash or refuse to start. Even read operations on some systems can degrade since temp files/swap can't be written. This is why disk alerts matter — a full disk can cascade into a full outage.
+
+**131. What happens when inodes are exhausted?**
+Even if there's plenty of free space in bytes, you can't create new files or directories, because there are no inodes left to describe them — you'll get "No space left on device" errors despite `df -h` showing free space. This usually happens from huge numbers of tiny files (like a session cache or mail queue that never gets cleaned up).
+
+**132. How do you find large files?**
+```bash
+find / -type f -size +500M
+```
+or the `du | sort` combo from Q45/Q127 to see space by directory.
+
+**133. How do you check mounted filesystems?**
+`mount` lists all currently mounted filesystems, or `df -h` for the same info in a more digestible form. `lsblk` shows the block device tree including what's mounted where.
+
+**134. What is `/etc/fstab`?**
+The filesystem table — it defines which filesystems/partitions get mounted automatically at boot, at what mount point, with what options (like `defaults`, `noexec`, `ro`).
+
+**135. What is mounting?**
+Mounting is attaching a filesystem (a disk, partition, network share, or ISO) to a specific directory in the existing filesystem tree, so its contents become accessible at that path. Nothing on a block device is usable until it's mounted somewhere.
+
+**136. Difference between a disk, partition, and filesystem.**
+A disk is the physical (or virtual) storage device. A partition is a logical division of that disk — you can carve one disk into multiple partitions. A filesystem is the format/structure (ext4, XFS, NTFS) that organizes how data is actually stored and retrieved within a partition.
+
+## 🔥 Scenario
+
+**137. Your server's disk is 100% full. How would you troubleshoot?**
+`df -h` first to confirm which mount is full. Then `du -h --max-depth=1` on that mount, drilling down level by level to find the biggest offender — logs and old backups are the usual culprits. I'd clear or rotate large log files, remove genuinely unneeded files, and check for a deleted-but-still-open file holding space (Q138). Longer term I'd set up log rotation and disk alerting so it doesn't happen again.
+
+**138. `df -h` shows enough space but you still cannot create files. Why?**
+Two common causes: inode exhaustion (Q131) — check with `df -i` — or a large file that's been deleted but is still held open by a running process, so the space isn't actually released at the OS level even though it's unlinked from the directory. `lsof | grep deleted` finds those, and restarting or having the process close the file frees the space.
+
+**139. A log file is continuously increasing and filling the disk. What will you do?**
+Short term, I'd truncate it safely with `: > /path/to/logfile` or `truncate -s 0 file` (never `rm` a file a process still has open, for the reason in Q138) and if urgent, ask the app to reopen its log handle or restart it. Then I'd set up proper `logrotate` configuration for that log going forward, and check whether the app is logging excessively due to an actual bug (like a crash loop or debug logging left on in production).
+
+**140. How would you find files larger than 1 GB?**
+```bash
+find / -type f -size +1G
+```

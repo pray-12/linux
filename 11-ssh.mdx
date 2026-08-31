@@ -1,0 +1,61 @@
+---
+title: SSH
+---
+
+## ⭐ Must Know
+
+**186. What is SSH?**
+Secure Shell — an encrypted protocol used to log into remote systems, execute commands, and transfer files securely over an untrusted network. It's how I access basically every remote Linux server I work with.
+
+**187. How does SSH work?**
+It uses asymmetric encryption to establish a secure channel: the client and server negotiate a session, the server proves its identity, and then authentication happens (password or, preferably, key-based). Once authenticated, all traffic between client and server is encrypted, so credentials and commands can't be sniffed on the network.
+
+**188. What is an SSH key pair?**
+A cryptographically linked pair of keys — a private key (kept secret, stays on my machine) and a public key (shared, placed on servers I want to access). Anything encrypted with one can only be decrypted/verified with the other, which is what makes key-based auth secure without ever transmitting a secret over the network.
+
+**189. Difference between public and private key.**
+The private key must never be shared — it's what proves my identity and stays on my local machine, ideally passphrase-protected. The public key is safe to distribute freely; it goes into `~/.ssh/authorized_keys` on any server I want to log into, and it can only verify signatures made by the matching private key, not create them.
+
+**190. Why should you never share a private key?**
+Because possession of the private key is equivalent to having my identity — anyone with it can authenticate as me on every server where the matching public key is trusted. There's no way to "revoke" a leaked private key remotely; the fix is generating a new key pair and removing the compromised public key everywhere it was authorized.
+
+**191. What is the default SSH port?**
+Port 22.
+
+**192. How do you connect to a remote server?**
+```bash
+ssh user@hostname
+```
+or with a specific key and port: `ssh -i ~/.ssh/id_rsa -p 2222 user@hostname`.
+
+**193. How do you copy files using SSH?**
+`scp` for a straightforward copy: `scp file.txt user@host:/remote/path/`. For syncing directories or large transfers, I prefer `rsync` since it's resumable and only transfers the differences.
+
+**194. Difference between `scp` and `rsync`.**
+`scp` does a full, one-shot copy every time, over SSH. `rsync` (which can also run over SSH) only transfers the parts of files that have actually changed, can resume interrupted transfers, and supports options like `--delete` to mirror directories exactly. For anything beyond a one-off small file copy, I reach for `rsync`.
+
+**195. What is SSH password authentication?**
+Logging in by typing the remote user's password when prompted. It's simpler to set up but weaker — vulnerable to brute-force attempts and it means a secret is typed over the connection each time, which is why most production environments disable it in favor of keys.
+
+**196. What is SSH key-based authentication?**
+Logging in using a private/public key pair instead of a password — the server challenges the client to prove it holds the private key matching an authorized public key. It's more secure and enables passwordless, scriptable access, which is essential for automation (CI/CD, Ansible, etc.).
+
+**197. What is `~/.ssh/authorized_keys`?**
+A file on the server listing the public keys that are allowed to log in as that user. Adding a public key here is what grants key-based access for that account.
+
+**198. What is `~/.ssh/config`?**
+A client-side config file that lets me define per-host shortcuts and defaults — hostname, user, port, identity file — so I can just type `ssh myserver` instead of the full `ssh -i key -p port user@host` every time.
+
+## 🔥 Scenario
+
+**199. You cannot SSH into an EC2 instance. What would you check?**
+Security group rules (is port 22 open from my IP?), the network ACL, whether the instance is actually running and passed status checks, whether I'm using the right username for the AMI (`ec2-user`, `ubuntu`, etc.) and the correct `.pem` key, and key file permissions (`chmod 400 key.pem`). I'd also check if it's in a private subnet requiring a bastion host, and whether the instance's own OS-level firewall (iptables/security software) is blocking things internally.
+
+**200. SSH gives `Permission denied (publickey)`. What could be wrong?**
+Usually one of: the public key isn't actually in `~/.ssh/authorized_keys` on the server, wrong permissions on `~/.ssh` (must be 700) or `authorized_keys` (must be 600) — SSH silently refuses to use them if they're too permissive, I'm pointing at the wrong private key file, or password auth is disabled and I mistakenly assumed it was enabled. Running `ssh -v` (or `-vvv`) shows exactly which keys were tried and where it failed.
+
+**201. SSH connection times out. What would you troubleshoot?**
+This usually points to a network-layer block rather than an auth problem — check security groups/firewall rules, whether the server is even reachable (`ping`, `traceroute`), whether `sshd` is actually running and listening on that port (`ss -tlnp | grep 22` from the server side if I have another way in), and whether there's a VPN/routing requirement I'm missing.
+
+**202. How would you disable password-based SSH login?**
+Edit `/etc/ssh/sshd_config`, set `PasswordAuthentication no`, then restart the service: `sudo systemctl restart sshd`. I'd always confirm key-based login works first and keep a session open while testing the change, so I don't lock myself out.

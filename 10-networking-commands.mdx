@@ -1,0 +1,61 @@
+---
+title: Networking Commands in Linux
+---
+
+## ⭐ Must Know
+
+**170. What does `ping` do?**
+Sends ICMP echo requests to a host and waits for replies, to check basic reachability and measure round-trip latency. It's usually my first, quickest check for "is this thing even reachable."
+
+**171. What does `curl` do?**
+Makes HTTP(S) (and other protocol) requests from the command line — great for hitting an API endpoint, checking response codes/headers, or testing if a web service is actually responding correctly, not just reachable at the network layer.
+
+**172. What does `wget` do?**
+Primarily used for downloading files over HTTP/HTTPS/FTP, with built-in support for retries and recursive downloads. `curl` is more flexible for general API/request testing; `wget` is more convenient for straightforward file downloads.
+
+**173. What is `ss`?**
+A modern tool for inspecting sockets — active connections, listening ports, and their states. It's the recommended replacement for `netstat` and is generally faster.
+
+**174. What is `netstat`?**
+The older tool for showing network connections, routing tables, and listening ports. It's deprecated on many distros in favor of `ss`, but it's still around and used out of habit on a lot of systems.
+
+**175. What does `ip addr` show?**
+Lists all network interfaces on the machine along with their assigned IP addresses, subnet masks, and state (up/down). It's the modern replacement for the older `ifconfig`.
+
+**176. What does `ip route` show?**
+Displays the system's routing table — which gateway/interface traffic goes through to reach various destination networks, including the default route.
+
+**177. What does `nslookup` do?**
+Queries DNS servers to resolve a hostname to an IP address (or vice versa) — a quick way to check if DNS resolution is working and what it's actually resolving to.
+
+**178. What does `dig` do?**
+A more detailed, DNS-specific query tool than `nslookup` — shows the full DNS response including record type, TTL, and which server answered. I generally prefer `dig` for troubleshooting because the output is more complete and easier to script against.
+
+**179. What does `traceroute` do?**
+Shows the network hop-by-hop path packets take to reach a destination, along with latency at each hop — useful for pinpointing exactly where in the network a delay or drop is happening.
+
+**180. What does `telnet` help you troubleshoot?**
+Even though it's obsolete as a remote-login protocol, `telnet host port` is still handy for testing whether a specific TCP port is open and accepting connections — a lightweight manual port check when `curl` isn't the right protocol.
+
+## 🔥 Scenario
+
+**181. Application is listening on port 8080. How do you verify it?**
+```bash
+ss -tlnp | grep 8080
+```
+This shows if something is actively listening on that port and which process owns it.
+
+**182. How do you check whether port 443 is open?**
+Locally: `ss -tlnp | grep 443` to confirm something's listening. From a remote machine: `telnet host 443` or `nc -zv host 443` to test if the connection actually succeeds through the network/firewall.
+
+**183. How do you find which process is using port 8080?**
+```bash
+ss -tlnp | grep 8080
+```
+or `lsof -i :8080` — both show the PID and process name bound to that port.
+
+**184. DNS is not resolving. How would you troubleshoot?**
+Check `/etc/resolv.conf` for the configured DNS servers, test resolution directly with `dig hostname` or `nslookup hostname`, try querying a known-good public DNS server directly (`dig hostname @8.8.8.8`) to isolate whether it's the configured resolver or the domain itself that's the problem, and check for basic network connectivity issues. I'd also check `/etc/hosts` in case there's a stale manual entry overriding DNS.
+
+**185. Server can ping an IP but cannot access the domain. What's the issue?**
+That points squarely at DNS — layer 3 connectivity (ping by IP) is fine, but hostname-to-IP resolution is failing. I'd check `/etc/resolv.conf`, test with `dig`/`nslookup`, and verify the DNS server itself is reachable and responding.

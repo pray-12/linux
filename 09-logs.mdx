@@ -1,0 +1,48 @@
+---
+title: Linux Logs
+---
+
+## ⭐ Must Know
+
+**157. Where are Linux logs stored?**
+Mostly under `/var/log` — things like `syslog`/`messages`, `auth.log`/`secure`, `kern.log`, plus per-service subdirectories like `/var/log/nginx/`. Systemd-managed services also log through `journald`, queryable with `journalctl`.
+
+**158. What is `/var/log`?**
+The standard directory where system and application logs are written — kernel messages, auth logs, package manager logs, cron logs, and whatever individual applications choose to write there.
+
+**159. What is `journalctl`?**
+Covered in [Services & systemd](./08-services-systemd.mdx#152-what-is-journalctl) — the query tool for systemd's centralized `journald` logs.
+
+**160. How do you view system logs?**
+`journalctl` on systemd systems, or `cat`/`less /var/log/syslog` (Debian/Ubuntu) or `/var/log/messages` (RHEL/CentOS) on older or non-systemd setups.
+
+**161. How do you view logs for a specific service?**
+`journalctl -u servicename`, or the app's dedicated log file if it writes one, e.g. `/var/log/nginx/error.log`.
+
+**162. How do you view logs in real time?**
+`journalctl -f` for the live systemd journal, or `tail -f /var/log/app.log` for a specific file.
+
+**163. How do you search logs for errors?**
+`grep -i error /var/log/syslog`, or `journalctl -u servicename -p err` to filter journal entries by priority level.
+
+**164. What is log rotation?**
+The process of archiving, compressing, and eventually deleting old log files on a schedule, so logs don't grow indefinitely and fill up the disk. A rotated log gets renamed (e.g. `app.log.1`, `app.log.2.gz`) and a fresh empty log is started.
+
+**165. What is `logrotate`?**
+The standard Linux tool that handles log rotation, configured via `/etc/logrotate.conf` and per-app configs in `/etc/logrotate.d/`. It defines rules like rotate daily/weekly, keep N old copies, compress old ones, and it's typically run by cron.
+
+## 🔥 Scenario
+
+**166. Application is failing randomly. Which logs would you check?**
+The application's own log file first, then `journalctl -u appservice` if it runs as a systemd service, system logs (`/var/log/syslog` or `/var/log/messages`) for OOM kills or kernel-level issues, and `dmesg` for hardware/kernel events. If it's containerized, `docker logs` or `kubectl logs` too. I'd correlate timestamps across all of them to build a timeline around the failure.
+
+**167. Jenkins suddenly stopped working. How would you investigate from logs?**
+`/var/log/jenkins/jenkins.log` for the app-level error, `journalctl -u jenkins -n 200` for the systemd view including any crash/restart events, and system logs to check for an OOM kill (`dmesg | grep -i "out of memory"`) or a disk-full event around the same timestamp, since those are common silent causes of a Jenkins crash.
+
+**168. Server rebooted unexpectedly. How would you investigate?**
+`last reboot` to confirm the timing, then `journalctl -b -1` to view the previous boot's logs right up to the point it went down — that's usually the fastest way to see what happened just before the crash. I'd also check `dmesg`/kernel logs for OOM killer activity, hardware errors, or a kernel panic, and check if it coincides with a scheduled patch/reboot job.
+
+**169. How would you find all `ERROR` entries from an application log?**
+```bash
+grep -i "error" /path/to/app.log
+```
