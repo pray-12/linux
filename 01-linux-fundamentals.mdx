@@ -71,3 +71,28 @@ I'd run `whoami` for just the username, or `id` to see the UID, GID, and group m
 
 **20. How do you find the hostname of a server?**
 `hostname` prints it directly, or I can check `hostnamectl` for more detail (static, transient, and pretty hostname, plus OS/kernel info).
+
+### Core Components of Linux
+
+The architecture is divided into **four primary layers**:
+
+*   **Hardware:** The base physical layer, consisting of peripheral devices, memory (RAM), storage, and the **Central Processing Unit (CPU)**.
+*   **Kernel:** The **core of the Linux OS**. It interacts directly with the hardware and manages system resources. It handles:
+    *   **Process Management:** Allocates CPU time to running applications.
+    *   **Memory Management:** Controls virtual and physical RAM usage.
+    *   **Device Drivers:** Acts as a bridge between the kernel and specific hardware components.
+    *   **System Calls:** Provides an interface for applications to request kernel actions safely.
+*   **Shell (Command Line Interface):** A software program that **interprets user commands** and passes them to the kernel. Common shells include **Bash** and **Zsh**.
+*   **User Space (Applications):** The outermost layer where user programs run. This includes **System Utilities** (like compilers and file managers) and **User Applications** (like web browsers, media players, and databases).
+
+---
+
+### Key Structural Frameworks
+
+The system operates across two main execution modes to maintain security and stability. You can see the breakdown in the framework matrix below:
+
+| System Layer / Mode | Authorized Permissions & Purpose |
+| :--- | :--- |
+| **Kernel Space** | Runs in a **privileged mode** with unrestricted access to hardware and system memory. |
+| **User Space** | Runs in a **restricted mode** preventing applications from directly altering system hardware or other processes. |
+
