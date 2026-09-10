@@ -43,8 +43,11 @@ Root is the superuser account with UID 0 — it has unrestricted access to every
 **11. What is `sudo`?**
 `sudo` ("superuser do") lets a permitted user run a specific command with elevated (usually root) privileges, without having to log in as root. Access is controlled via `/etc/sudoers`, and every sudo command gets logged, which is great for auditing.
 
-**12. What is the difference between `sudo` and `su`?**
-`sudo` runs a single command with elevated privileges and then drops back to your normal user, and it's tied to your own password and a defined permission set. `su` (switch user) actually starts a new shell as another user — typically root — and needs that target user's password, and you stay in that shell until you exit. I generally prefer `sudo` because it's more granular and auditable.
+**12. What is the difference between `sudo su` and `sudo -i`?**
+`sudo su` gives me a root shell while preserving much of my current environment. `sudo -i` gives me a root login shell, so it initializes the root user's environment, including HOME and login configuration. If I simply need a proper root login environment, I prefer `sudo -i`.
+
+`sudo su` → switch user
+`sudo -i` → interactive root login shell
 
 **13. What is `/` in Linux?**
 `/` is the root directory — the top of the entire filesystem hierarchy. Every other directory, including mounted drives, hangs off of it; there's no concept of separate drive letters like in Windows.
