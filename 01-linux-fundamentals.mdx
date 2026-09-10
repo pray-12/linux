@@ -32,7 +32,7 @@ A shell is a command-line interpreter that takes the commands I type, interprets
 Bash (Bourne Again Shell) is the most common Linux shell and scripting language, and it's the default shell on most distributions. Almost all the shell scripts I write for automation are Bash scripts.
 
 **8. What happens when you execute a command in Linux?**
-The shell parses the command, checks if it's a built-in or an alias, and if not, searches `$PATH` for a matching executable. It then forks a new child process and uses `exec()` to replace that child's memory with the program, runs it, and returns the exit status to the shell once it finishes.
+When I execute a Linux command, the shell first parses it and determines whether it's a built-in or external command. For an external command, it searches the PATH for the executable, creates a process, and uses the kernel to execute it. The command produces output through stdout or errors through stderr, and finally returns an exit status, where 0 generally means success.
 
 **9. What is the difference between CLI and GUI?**
 CLI (command-line interface) means interacting with the system by typing commands into a terminal — that's what I use on servers since most don't even have a GUI. GUI (graphical user interface) is the windows/icons/mouse-driven interface, more common on desktop distros.
