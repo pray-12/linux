@@ -35,7 +35,15 @@ process whose parent process has finished, crashed, or terminated while the chil
 `ps aux` gives a snapshot of every process on the system. `ps -ef` is the equivalent in the other (UNIX-style) syntax.
 
 **94. Difference between `ps`, `top`, and `htop`.**
-`ps` gives a static, one-time snapshot of processes. `top` is a live, auto-refreshing view of processes sorted by resource usage. `htop` is basically a nicer, colorized, more interactive version of `top` — scrollable, mouse-friendly, easier to sort and kill processes from — but it's not always pre-installed.
+
+*   **Use `ps` when scripting or filtering:** 
+    > "I use `ps aux | grep <process>` in scripts because it outputs plain text that is easy to parse, automate, or log to a file."
+    
+*   **Use `top` for low-resource server triage:** 
+    > "I use `top` on bare-minimum production servers where third-party packages cannot be installed, or when I need to monitor resources without installing extra overhead."
+    
+*   **Use `htop` for day-to-day debugging:** 
+    > "I prefer `htop` on development machines because it visually maps parent-child process relationships (Tree View), allows scrolling with arrow keys instead of guessing clipped names, and simplifies management with function keys."
 
 **95. How do you find a process by name?**
 `pgrep processname`, or `ps aux | grep processname`.
