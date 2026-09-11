@@ -26,10 +26,10 @@ Processes that are run independently of a user are referred to as background pro
 A background service process, usually started at boot and running continuously, with no controlling terminal — things like `sshd`, `nginx`, `crond`. Daemon names conventionally end in `d`.
 
 **91. What is a zombie process?**
-A process that has finished executing but still has an entry in the process table because its parent hasn't yet called `wait()` to read its exit status. It's dead but not fully "reaped." A few zombies aren't usually a problem, but a growing number points to a parent process that's failing to clean up after its children.
+A zombie process is when a child process terminates but remains in the process table because its parent has not picked up its exit status. 
 
 **92. What is an orphan process?**
-A process whose parent has died before it did. The kernel re-parents it (traditionally to `init`/PID 1, or `systemd` today), which then takes responsibility for eventually reaping it.
+process whose parent process has finished, crashed, or terminated while the child process is still running
 
 **93. How do you list running processes?**
 `ps aux` gives a snapshot of every process on the system. `ps -ef` is the equivalent in the other (UNIX-style) syntax.
