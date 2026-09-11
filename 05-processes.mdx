@@ -17,7 +17,7 @@ Parent Process ID — the PID of the process that spawned this one. Every proces
 A process has its own isolated memory space and resources. A thread is a lighter-weight unit of execution that runs *within* a process and shares that process's memory with other threads in it. Multiple threads in one process can communicate more cheaply than separate processes, but a crash in one thread can bring down the whole process.
 
 **88. What is a foreground process?**
-A process that runs attached to the terminal, occupying it — the shell waits for it to finish before giving you the prompt back.
+Processes that require a user to start them or to interact with them
 
 **89. What is a background process?**
 A process that runs detached from the terminal's control, freeing up the shell for other commands. You start one by appending `&`.
